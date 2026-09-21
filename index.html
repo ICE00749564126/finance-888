@@ -4,24 +4,342 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ไม่หล่อแต่ก่อกวน ไฟแนนซ์ 888</title>
+  <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts Kanit -->
+  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <!-- React & ReactDOM -->
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <!-- Babel -->
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    body { font-family: 'Kanit', sans-serif; }
+  </style>
 </head>
-<body class="bg-slate-950 text-slate-100">
+<body class="bg-slate-950 text-slate-100 min-h-screen">
   <div id="root"></div>
 
   <script type="text/babel">
-    const { useState, useEffect, useMemo, useRef } = React;
+    const { useState, useEffect, useMemo } = React;
 
-    // ไอคอนและโค้ดแอป Finance 888
+    const CATEGORIES = [
+      { name: 'อาหาร / เครื่องดื่ม', icon: '🍔', type: 'expense' },
+      { name: 'ค่าหอ / ค่าน้ำไฟ', icon: '🏠', type: 'expense' },
+      { name: 'เดินทาง / ค่าน้ำมัน', icon: '🚗', type: 'expense' },
+      { name: 'ช้อปปิ้ง / ของใช้', icon: '🛍️', type: 'expense' },
+      { name: 'บันเทิง / เกม / ปาร์ตี้', icon: '🎮', type: 'expense' },
+      { name: 'เงินเดือน / ค่าขนม', icon: '💰', type: 'income' },
+      { name: 'รายรับอื่นๆ', icon: '💵', type: 'income' },
+      { name: 'อื่นๆ', icon: '📦', type: 'expense' },
+    ];
+
+    const FOOD_SUGGESTIONS = [
+      'บะหมี่สำเร็จรูปใส่ไข่ 🍜', 'ข้าวไข่เจียวทรงเครื่อง 🍳', 'ข้าวผัดปลากระป๋อง 🥫',
+      'ส้มตำไก่ทอดหน้าหอ 🥗', 'ก๋วยเตี๋ยวเรือแถวหอ 🍜', 'ข้าวมันไก่ป้าแถวซอย 🍗',
+      'ข้าวผัดกระเพราไข่ดาว 🍛', 'ข้าวไข่ข้นซอสต้มยำ 🥘', 'แซนด์วิชเซเว่น + นม 🥪'
+    ];
+
     function App() {
+      // LocalStorage State
+      const [monthlyBudget, setMonthlyBudget] = useState(() => {
+        return Number(localStorage.getItem('f888_budget')) || 5000;
+      });
+      const [transactions, setTransactions] = useState(() => {
+        const saved = localStorage.getItem('f888_txs');
+        return saved ? JSON.parse(saved) : [];
+      });
+
+      // Form State
+      const [type, setType] = useState('expense');
+      const [amount, setAmount] = useState('');
+      const [category, setCategory] = useState(CATEGORIES[0].name);
+      const [note, setNote] = useState('');
+      const [filter, setFilter] = useState('all');
+      const [randomFood, setRandomFood] = useState('');
+
+      // Save to localStorage
+      useEffect(() => {
+        localStorage.setItem('f888_budget', monthlyBudget);
+      }, [monthlyBudget]);
+
+      useEffect(() => {
+        localStorage.setItem('f888_txs', JSON.stringify(transactions));
+      }, [transactions]);
+
+      // Calculations
+      const todayStr = new Date().toISOString().split('T')[0];
+
+      const totalIncome = useMemo(() => {
+        return transactions.filter(t => t.type === 'income').reduce((acc, t) => acc + t.amount, 0);
+      }, [transactions]);
+
+      const totalExpense = useMemo(() => {
+        return transactions.filter(t => t.type === 'expense').reduce((acc, t) => acc + t.amount, 0);
+      }, [transactions]);
+
+      const spentToday = useMemo(() => {
+        return transactions
+          .filter(t => t.type === 'expense' && t.date.startsWith(todayStr))
+          .reduce((acc, t) => acc + t.amount, 0);
+      }, [transactions, todayStr]);
+
+      const remainingBalance = monthlyBudget + totalIncome - totalExpense;
+
+      // Days remaining in month
+      const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate();
+      const currentDay = new Date().getDate();
+      const daysLeft = Math.max(1, daysInMonth - currentDay + 1);
+      const dailyAllowance = Math.max(0, Math.round(remainingBalance / daysLeft));
+
+      // Handlers
+      const handleAddTransaction = (e) => {
+        e.preventDefault();
+        if (!amount || Number(amount) <= 0) return;
+
+        const newTx = {
+          id: Date.now(),
+          type,
+          amount: Number(amount),
+          category,
+          note: note.trim() || category,
+          date: new Date().toLocaleString('th-TH'),
+        };
+
+        setTransactions([newTx, ...transactions]);
+        setAmount('');
+        setNote('');
+      };
+
+      const handleDelete = (id) => {
+        setTransactions(transactions.filter(t => t.id !== id));
+      };
+
+      const spinFood = () => {
+        const food = FOOD_SUGGESTIONS[Math.floor(Math.random() * FOOD_SUGGESTIONS.length)];
+        setRandomFood(food);
+      };
+
+      const filteredTransactions = transactions.filter(t => {
+        if (filter === 'income') return t.type === 'income';
+        if (filter === 'expense') return t.type === 'expense';
+        return true;
+      });
+
       return (
-        <div className="min-h-screen flex items-center justify-center p-4">
-          <div className="text-center space-y-4">
-            <h1 className="text-3xl font-black text-emerald-400"> tidak liao / Finance 888</h1>
-            <p className="text-slate-400">เว็บจัดการเงินฉบับเด็กหอ พร้อมใช้งานแล้ว!</p>
+        <div className="max-w-3xl mx-auto p-4 space-y-6 pb-20">
+          {/* Header */}
+          <header className="text-center space-y-2 pt-4">
+            <div className="inline-block bg-emerald-500/10 border border-emerald-500/30 px-4 py-1 rounded-full text-emerald-400 text-sm font-semibold tracking-wide mb-1">
+              FINANCE 888 💸
+            </div>
+            <h1 className="text-3xl sm:text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-400">
+              ไม่หล่อแต่ก่อกวน ไฟแนนซ์ 888
+            </h1>
+            <p className="text-slate-400 text-sm">ระบบจัดการเงินฉบับเด็กหอ คำนวณงบรายวันให้อัตโนมัติ</p>
+          </header>
+
+          {/* Cards Overview */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="bg-slate-900/90 border border-slate-800 p-4 rounded-2xl">
+              <p className="text-xs text-slate-400 mb-1">งบรวมคงเหลือ</p>
+              <p className={`text-xl font-bold ${remainingBalance < 1000 ? 'text-rose-400' : 'text-emerald-400'}`}>
+                ฿{remainingBalance.toLocaleString()}
+              </p>
+            </div>
+
+            <div className="bg-slate-900/90 border border-slate-800 p-4 rounded-2xl">
+              <p className="text-xs text-slate-400 mb-1">ใช้วันนี้ได้ไม่เกิน</p>
+              <p className="text-xl font-bold text-cyan-400">
+                ฿{dailyAllowance.toLocaleString()} <span className="text-xs font-normal text-slate-500">/วัน</span>
+              </p>
+            </div>
+
+            <div className="bg-slate-900/90 border border-slate-800 p-4 rounded-2xl">
+              <p className="text-xs text-slate-400 mb-1">ใช้ไปวันนี้</p>
+              <p className="text-xl font-bold text-amber-400">
+                ฿{spentToday.toLocaleString()}
+              </p>
+            </div>
+
+            <div className="bg-slate-900/90 border border-slate-800 p-4 rounded-2xl">
+              <p className="text-xs text-slate-400 mb-1">รายจ่ายรวม</p>
+              <p className="text-xl font-bold text-rose-400">
+                ฿{totalExpense.toLocaleString()}
+              </p>
+            </div>
+          </div>
+
+          {/* Monthly Budget Setting */}
+          <div className="bg-slate-900/60 border border-slate-800/80 p-4 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-3">
+            <span className="text-sm text-slate-300">⚙️ ตั้งงบประมาณเริ่มต้นเดือนนี้ (บาท):</span>
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <input 
+                type="number" 
+                value={monthlyBudget} 
+                onChange={(e) => setMonthlyBudget(Number(e.target.value))}
+                className="bg-slate-950 border border-slate-700 text-emerald-400 font-bold px-3 py-1.5 rounded-xl w-full sm:w-32 focus:outline-none focus:border-emerald-500 text-center"
+              />
+            </div>
+          </div>
+
+          {/* Add Transaction Form */}
+          <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl space-y-4 shadow-xl">
+            <h2 className="text-lg font-bold text-slate-200 flex items-center gap-2">
+              <span>➕</span> เพิ่มรายการใหม่
+            </h2>
+
+            <form onSubmit={handleAddTransaction} className="space-y-4">
+              {/* Type selector */}
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => { setType('expense'); setCategory(CATEGORIES[0].name); }}
+                  className={`py-2 rounded-xl text-sm font-semibold transition ${
+                    type === 'expense' 
+                      ? 'bg-rose-500/20 text-rose-400 border border-rose-500/40' 
+                      : 'bg-slate-950 text-slate-400 border border-slate-800'
+                  }`}
+                >
+                  🔻 รายจ่าย
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setType('income'); setCategory(CATEGORIES[5].name); }}
+                  className={`py-2 rounded-xl text-sm font-semibold transition ${
+                    type === 'income' 
+                      ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40' 
+                      : 'bg-slate-950 text-slate-400 border border-slate-800'
+                  }`}
+                >
+                  🟢 รายรับ
+                </button>
+              </div>
+
+              {/* Inputs */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <input
+                  type="number"
+                  placeholder="จำนวนเงิน (บาท)"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  className="bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-slate-100 focus:outline-none focus:border-emerald-500"
+                  required
+                />
+
+                <select
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                  className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-slate-100 focus:outline-none focus:border-emerald-500"
+                >
+                  {CATEGORIES.filter(c => c.type === type).map((cat, idx) => (
+                    <option key={idx} value={cat.name}>{cat.icon} {cat.name}</option>
+                  ))}
+                </select>
+
+                <input
+                  type="text"
+                  placeholder="บันทึกสั้นๆ (เช่น ข้าวผัดกะเพรา)"
+                  value={note}
+                  onChange={(e) => setNote(e.target.value)}
+                  className="bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-slate-100 focus:outline-none focus:border-emerald-500"
+                />
+              </div>
+
+              <button
+                type="submit"
+                className="w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-slate-950 font-bold py-3 rounded-xl transition shadow-lg shadow-emerald-500/20"
+              >
+                บันทึกรายการ
+              </button>
+            </form>
+          </div>
+
+          {/* Random Food Helper (Bonus Feature) */}
+          <div className="bg-gradient-to-r from-purple-900/30 to-indigo-900/30 border border-purple-500/30 p-4 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div>
+              <p className="font-bold text-purple-300 text-sm">🎲 คิดไม่ออกว่าวันนี้จะกินอะไรดี?</p>
+              <p className="text-xs text-purple-200/70">กดสุ่มเมนูประหยัดฉบับเด็กหอได้เลย</p>
+            </div>
+            <div className="flex items-center gap-3 w-full sm:w-auto">
+              {randomFood && <span className="text-emerald-300 font-semibold text-sm bg-purple-950/80 px-3 py-1.5 rounded-xl border border-purple-800">{randomFood}</span>}
+              <button
+                onClick={spinFood}
+                className="bg-purple-500 hover:bg-purple-600 text-white font-semibold text-sm px-4 py-2 rounded-xl transition shrink-0"
+              >
+                🎰 สุ่มเมนู!
+              </button>
+            </div>
+          </div>
+
+          {/* Transactions History */}
+          <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <h2 className="text-lg font-bold text-slate-200 flex items-center gap-2">
+                <span>📜</span> ประวัติรายการ ({filteredTransactions.length})
+              </h2>
+
+              {/* Filter */}
+              <div className="flex bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs font-medium">
+                <button
+                  onClick={() => setFilter('all')}
+                  className={`px-3 py-1 rounded-lg transition ${filter === 'all' ? 'bg-slate-800 text-white' : 'text-slate-400'}`}
+                >
+                  ทั้งหมด
+                </button>
+                <button
+                  onClick={() => setFilter('expense')}
+                  className={`px-3 py-1 rounded-lg transition ${filter === 'expense' ? 'bg-rose-500/20 text-rose-400' : 'text-slate-400'}`}
+                >
+                  รายจ่าย
+                </button>
+                <button
+                  onClick={() => setFilter('income')}
+                  className={`px-3 py-1 rounded-lg transition ${filter === 'income' ? 'bg-emerald-500/20 text-emerald-400' : 'text-slate-400'}`}
+                >
+                  รายรับ
+                </button>
+              </div>
+            </div>
+
+            {filteredTransactions.length === 0 ? (
+              <div className="text-center py-10 text-slate-500">
+                ยังไม่มีรายการบันทึก ลองเพิ่มรายการแรกดูสิ! 💸
+              </div>
+            ) : (
+              <div className="space-y-2 max-h-96 overflow-y-auto pr-1">
+                {filteredTransactions.map((tx) => {
+                  const catObj = CATEGORIES.find(c => c.name === tx.category) || { icon: '📝' };
+                  return (
+                    <div 
+                      key={tx.id} 
+                      className="bg-slate-950/80 border border-slate-800/80 p-3 rounded-xl flex items-center justify-between transition hover:border-slate-700"
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className="text-2xl bg-slate-900 p-2 rounded-xl">{catObj.icon}</span>
+                        <div>
+                          <p className="font-semibold text-sm text-slate-200">{tx.note}</p>
+                          <p className="text-xs text-slate-500">{tx.date} • <span className="text-slate-400">{tx.category}</span></p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-3">
+                        <span className={`font-bold text-sm sm:text-base ${tx.type === 'income' ? 'text-emerald-400' : 'text-rose-400'}`}>
+                          {tx.type === 'income' ? '+' : '-'}฿{tx.amount.toLocaleString()}
+                        </span>
+                        <button
+                          onClick={() => handleDelete(tx.id)}
+                          className="text-slate-600 hover:text-rose-400 text-xs p-1 rounded transition"
+                          title="ลบรายการ"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
       );
