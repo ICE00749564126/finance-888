@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ไม่หล่อแต่ก่อกวน ไฟแนนซ์ 888</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-100">
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useMemo, useRef } = React;
+
+    // ไอคอนและโค้ดแอป Finance 888
+    function App() {
+      return (
+        <div className="min-h-screen flex items-center justify-center p-4">
+          <div className="text-center space-y-4">
+            <h1 className="text-3xl font-black text-emerald-400"> tidak liao / Finance 888</h1>
+            <p className="text-slate-400">เว็บจัดการเงินฉบับเด็กหอ พร้อมใช้งานแล้ว!</p>
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
